@@ -50,7 +50,39 @@ resource "aws_subnet" "private" {
       "Name" = format("%s-${var.private_subnet_suffix}-%s", var.name, element(var.azs, count.index))
     },
     var.tags,
-    var.public_subnet_tags
+    var.private_subnet_tags
+  )
+}
+
+resource "aws_subnet" "private_lambda" {
+  count = var.create_vpc && length(var.private_lambda_subnets) > 0 && length(var.private_lambda_subnets) >= length(var.azs) ? length(var.private_lambda_subnets) : 0
+
+  vpc_id            = aws_vpc.this[0].id
+  cidr_block        = element(var.private_lambda_subnets, count.index)
+  availability_zone = element(var.azs, count.index)
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.private_lambda_subnet_suffix}-%s", var.name, element(var.azs, count.index))
+    },
+    var.tags,
+    var.private_lambda_subnet_tags
+  )
+}
+
+resource "aws_subnet" "private_eks_nodegroup" {
+  count = var.create_vpc && length(var.private_eks_nodegroup_subnets) > 0 && length(var.private_eks_nodegroup_subnets) >= length(var.azs) ? length(var.private_eks_nodegroup_subnets) : 0
+
+  vpc_id            = aws_vpc.this[0].id
+  cidr_block        = element(var.private_eks_nodegroup_subnets, count.index)
+  availability_zone = element(var.azs, count.index)
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.private_eks_nodegroup_subnet_suffix}-%s", var.name, element(var.azs, count.index))
+    },
+    var.tags,
+    var.private_eks_nodegroup_subnet_tags
   )
 }
 
@@ -70,7 +102,24 @@ resource "aws_subnet" "public" {
       "Name" = format("%s-${var.public_subnet_suffix}-%s", var.name, element(var.azs, count.index))
     },
     var.tags,
-    var.private_subnet_tags
+    var.public_subnet_tags
+  )
+}
+
+resource "aws_subnet" "public_eks_control" {
+  count = var.create_vpc && length(var.public_eks_subnets) > 0 && length(var.public_eks_subnets) >= length(var.azs) ? length(var.public_eks_subnets) : 0
+
+  vpc_id                  = aws_vpc.this[0].id
+  cidr_block              = element(var.public_eks_subnets, count.index)
+  availability_zone       = element(var.azs, count.index)
+  map_public_ip_on_launch = var.enable_map_public_ip_launch
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.public_eks_subnet_suffix}-%s", var.name, element(var.azs, count.index))
+    },
+    var.tags,
+    var.public_eks_subnet_tags
   )
 }
 
@@ -129,9 +178,10 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table_association" "public" {
-  count = var.create_vpc && var.create_igw && length(var.public_subnets) > 0 ? length(var.public_subnets) : 0
+  count = var.create_vpc && var.create_igw && length(local.aggregate_public_subnets) > 0 ? length(local.aggregate_public_subnets) : 0
 
-  subnet_id      = aws_subnet.public[count.index].id
+  #  subnet_id      = aws_subnet.private[count.index].id
+  subnet_id      = local.aggregate_public_subnets[count.index]
   route_table_id = aws_route_table.public[0].id
 }
 
@@ -143,17 +193,18 @@ resource "aws_route_table" "private" {
 
   vpc_id = aws_vpc.this[count.index].id
 
-  dynamic route {
-    for_each = var.nat_destinations
-    content {
-      cidr_block     = route.value
-      nat_gateway_id = aws_nat_gateway.this[count.index].id
-    }
-  }
+  #  dynamic route {
+  #  for_each = var.nat_destinations
+  #  content {
+  #    cidr_block     = route.value
+  #    nat_gateway_id = aws_nat_gateway.this[count.index].id
+  #  }
+  #}
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this[count.index].id
+    #  gateway_id = aws_internet_gateway.this[count.index].id
+    nat_gateway_id = aws_nat_gateway.this[count.index].id
   }
 
   tags = merge(
@@ -166,9 +217,10 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "private" {
-  count = var.create_vpc && var.create_igw && length(var.private_subnets) > 0 ? length(var.private_subnets) : 0
+  count = var.create_vpc && var.create_igw && length(local.aggregate_private_subnets) > 0 ? length(local.aggregate_private_subnets) : 0
 
-  subnet_id      = aws_subnet.private[count.index].id
+  #subnet_id      = aws_subnet.private[count.index].id
+  subnet_id      = local.aggregate_private_subnets[count.index]
   route_table_id = aws_route_table.private[0].id
 }
 
@@ -194,8 +246,7 @@ resource "aws_vpc_endpoint" "s3" {
 # S3 VPC Endpoint Public Subnet Association
 ########################
 resource "aws_vpc_endpoint_route_table_association" "s3_public" {
-  count = var.create_vpc && var.enable_s3_endpoint ? 1 : 0
-  #  for_each = toset(aws_route_table.public.*.id)
+  count           = var.create_vpc && var.enable_s3_endpoint ? 1 : 0
   route_table_id  = aws_route_table.public[0].id
   vpc_endpoint_id = aws_vpc_endpoint.s3[0].id
 }
@@ -204,9 +255,7 @@ resource "aws_vpc_endpoint_route_table_association" "s3_public" {
 # S3 VPC Endpoint Private Subnet Association
 ########################
 resource "aws_vpc_endpoint_route_table_association" "s3_private" {
-  count = var.create_vpc && var.enable_s3_endpoint ? 1 : 0
-  #for_each = toset(aws_route_table.private.*.id)
-  #route_table_id = each.key
+  count           = var.create_vpc && var.enable_s3_endpoint ? 1 : 0
   route_table_id  = aws_route_table.public[0].id
   vpc_endpoint_id = aws_vpc_endpoint.s3[0].id
 }

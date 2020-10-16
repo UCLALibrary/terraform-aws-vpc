@@ -1,4 +1,4 @@
-# terraform-aws-vpc
+# terraform-aws-vpc ![Lint and validate](https://github.com/UCLALibrary/terraform-aws-vpc/workflows/Lint%20and%20validate/badge.svg)
 
 ## Description
 This module will instantiate an AWS account that can be configured in variations of the following:

@@ -34,10 +34,22 @@ variable "public_subnet_tags" {
   default     = {}
 }
 
+variable "public_eks_subnet_tags" {
+  description = "Additional tags for public subnets"
+  type        = map(string)
+  default     = {}
+}
+
 variable "public_subnet_suffix" {
   description = "Suffix tag for public subnets"
   type        = string
   default     = "public"
+}
+
+variable "public_eks_subnet_suffix" {
+  description = "Suffix tag for public subnets"
+  type        = string
+  default     = "public_eks_control"
 }
 
 variable "public_route_table_tags" {
@@ -46,8 +58,19 @@ variable "public_route_table_tags" {
   default     = {}
 }
 
-
 variable "private_subnet_tags" {
+  description = "Additional tags for private subnets"
+  type        = map(string)
+  default     = {}
+}
+
+variable "private_lambda_subnet_tags" {
+  description = "Additional tags for private subnets"
+  type        = map(string)
+  default     = {}
+}
+
+variable "private_eks_nodegroup_subnet_tags" {
   description = "Additional tags for private subnets"
   type        = map(string)
   default     = {}
@@ -57,6 +80,18 @@ variable "private_subnet_suffix" {
   description = "Suffix tag for private subnets"
   type        = string
   default     = "private"
+}
+
+variable "private_lambda_subnet_suffix" {
+  description = "Suffix tag for private subnets"
+  type        = string
+  default     = "private_lambda"
+}
+
+variable "private_eks_nodegroup_subnet_suffix" {
+  description = "Suffix tag for private subnets"
+  type        = string
+  default     = "private_lambda"
 }
 
 variable "private_route_table_tags" {
@@ -132,7 +167,25 @@ variable "enable_map_public_ip_launch" {
 }
 
 variable "private_subnets" {
-  description = "List of private subnets"
+  description = "List of private subnets for general use"
+  type        = list(string)
+  default     = []
+}
+
+variable "private_eks_nodegroup_subnets" {
+  description = "List of private subnets for EKS nodegroups"
+  type        = list(string)
+  default     = []
+}
+
+variable "private_lambda_subnets" {
+  description = "List of private subnets for Lambda"
+  type        = list(string)
+  default     = []
+}
+
+variable "public_eks_subnets" {
+  description = "List of public subnets for EKS control plane"
   type        = list(string)
   default     = []
 }
