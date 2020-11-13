@@ -40,6 +40,13 @@ variable "public_eks_subnet_tags" {
   default     = {}
 }
 
+variable "rancher_eks_subnets_tags" {
+  description = "Additional tags for rancher eks subnets"
+  type        = map(string)
+  default     = {}
+}
+
+
 variable "public_subnet_suffix" {
   description = "Suffix tag for public subnets"
   type        = string
@@ -51,6 +58,13 @@ variable "public_eks_subnet_suffix" {
   type        = string
   default     = "public_eks_control"
 }
+
+variable "rancher_eks_subnets_suffix" {
+  description = "Suffix tag for rancher eks subnets"
+  type        = string
+  default     = "rancher_eks"
+}
+
 
 variable "public_route_table_tags" {
   description = "Additional tags for public route tables"
@@ -64,8 +78,14 @@ variable "private_subnet_tags" {
   default     = {}
 }
 
-variable "private_lambda_subnet_tags" {
-  description = "Additional tags for private subnets"
+variable "private_prod_lambda_subnet_tags" {
+  description = "Additional tags for private prod lambda subnets"
+  type        = map(string)
+  default     = {}
+}
+
+variable "private_test_lambda_subnet_tags" {
+  description = "Additional tags for private test lambda subnets"
   type        = map(string)
   default     = {}
 }
@@ -82,10 +102,16 @@ variable "private_subnet_suffix" {
   default     = "private"
 }
 
-variable "private_lambda_subnet_suffix" {
+variable "private_prod_lambda_subnet_suffix" {
   description = "Suffix tag for private subnets"
   type        = string
-  default     = "private_lambda"
+  default     = "private_prod_lambda"
+}
+
+variable "private_test_lambda_subnet_suffix" {
+  description = "Suffix tag for private subnets"
+  type        = string
+  default     = "private_test_lambda"
 }
 
 variable "private_eks_nodegroup_subnet_suffix" {
@@ -178,14 +204,26 @@ variable "private_eks_nodegroup_subnets" {
   default     = []
 }
 
-variable "private_lambda_subnets" {
-  description = "List of private subnets for Lambda"
+variable "private_prod_lambda_subnets" {
+  description = "List of prod private subnets for Lambda"
+  type        = list(string)
+  default     = []
+}
+
+variable "private_test_lambda_subnets" {
+  description = "List of test private subnets for Lambda"
   type        = list(string)
   default     = []
 }
 
 variable "public_eks_subnets" {
   description = "List of public subnets for EKS control plane"
+  type        = list(string)
+  default     = []
+}
+
+variable "rancher_eks_subnets" {
+  description = "List of public subnets for Rancher EKS"
   type        = list(string)
   default     = []
 }

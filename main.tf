@@ -54,19 +54,35 @@ resource "aws_subnet" "private" {
   )
 }
 
-resource "aws_subnet" "private_lambda" {
-  count = var.create_vpc && length(var.private_lambda_subnets) > 0 && length(var.private_lambda_subnets) >= length(var.azs) ? length(var.private_lambda_subnets) : 0
+resource "aws_subnet" "private_prod_lambda" {
+  count = var.create_vpc && length(var.private_prod_lambda_subnets) > 0 && length(var.private_prod_lambda_subnets) >= length(var.azs) ? length(var.private_prod_lambda_subnets) : 0
 
   vpc_id            = aws_vpc.this[0].id
-  cidr_block        = element(var.private_lambda_subnets, count.index)
+  cidr_block        = element(var.private_prod_lambda_subnets, count.index)
   availability_zone = element(var.azs, count.index)
 
   tags = merge(
     {
-      "Name" = format("%s-${var.private_lambda_subnet_suffix}-%s", var.name, element(var.azs, count.index))
+      "Name" = format("%s-${var.private_prod_lambda_subnet_suffix}-%s", var.name, element(var.azs, count.index))
     },
     var.tags,
-    var.private_lambda_subnet_tags
+    var.private_prod_lambda_subnet_tags
+  )
+}
+
+resource "aws_subnet" "private_test_lambda" {
+  count = var.create_vpc && length(var.private_test_lambda_subnets) > 0 && length(var.private_test_lambda_subnets) >= length(var.azs) ? length(var.private_test_lambda_subnets) : 0
+
+  vpc_id            = aws_vpc.this[0].id
+  cidr_block        = element(var.private_test_lambda_subnets, count.index)
+  availability_zone = element(var.azs, count.index)
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.private_test_lambda_subnet_suffix}-%s", var.name, element(var.azs, count.index))
+    },
+    var.tags,
+    var.private_test_lambda_subnet_tags
   )
 }
 
@@ -120,6 +136,23 @@ resource "aws_subnet" "public_eks_control" {
     },
     var.tags,
     var.public_eks_subnet_tags
+  )
+}
+
+resource "aws_subnet" "rancher_eks" {
+  count = var.create_vpc && length(var.rancher_eks_subnets) > 0 && length(var.rancher_eks_subnets) >= length(var.azs) ? length(var.rancher_eks_subnets) : 0
+
+  vpc_id                  = aws_vpc.this[0].id
+  cidr_block              = element(var.rancher_eks_subnets, count.index)
+  availability_zone       = element(var.azs, count.index)
+  map_public_ip_on_launch = var.enable_map_public_ip_launch
+
+  tags = merge(
+    {
+      "Name" = format("%s-${var.rancher_eks_subnets_suffix}-%s", var.name, element(var.azs, count.index))
+    },
+    var.tags,
+    var.rancher_eks_subnets_tags
   )
 }
 
@@ -180,7 +213,6 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   count = var.create_vpc && var.create_igw && length(local.aggregate_public_subnets) > 0 ? length(local.aggregate_public_subnets) : 0
 
-  #  subnet_id      = aws_subnet.private[count.index].id
   subnet_id      = local.aggregate_public_subnets[count.index]
   route_table_id = aws_route_table.public[0].id
 }
@@ -193,17 +225,8 @@ resource "aws_route_table" "private" {
 
   vpc_id = aws_vpc.this[count.index].id
 
-  #  dynamic route {
-  #  for_each = var.nat_destinations
-  #  content {
-  #    cidr_block     = route.value
-  #    nat_gateway_id = aws_nat_gateway.this[count.index].id
-  #  }
-  #}
-
   route {
     cidr_block = "0.0.0.0/0"
-    #  gateway_id = aws_internet_gateway.this[count.index].id
     nat_gateway_id = aws_nat_gateway.this[count.index].id
   }
 
